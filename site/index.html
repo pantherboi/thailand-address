@@ -30,43 +30,86 @@
 </style>
 
 <script>
-  
+     var mapProvince = [];
+     var mapDistrict = [];
+     var mapSubDistrict = [];
+     initData();
+     function initData(){
+          loadData("../data/province.txt",initProvince);
+          // loadData("../data/district.txt");
+          // loadData("../data/subdistrict.txt");
+     }
+     function findProvinceByID(id){
+          return mapProvince.filter(obj => obj.value === id)
+     }
+     function findProvinceByLabel(label){
+          return mapProvince.filter(obj => obj.label.indexOf(label) >= 0)
+     }
+     function loadData(path, callback){
+         const xhr = new XMLHttpRequest();
+         xhr.overrideMimeType('text/xml; charset=iso-8859-11');
+         xhr.onreadystatechange = function () {
+               if(xhr.readyState === 4 && xhr.status === 200 ){
+                    const res= xhr.responseText;
+                    const allLines = res.split(/\r?\n/);
+                    callback(allLines);
+               }
+         }
+         xhr.open("GET",path );
+         xhr.send();
+     }
+
+     function initProvince(data){
+          data.forEach((line) => {
+                    const val = line.split("|");
+                    if(val.length > 1){
+                         entry = {
+                                label: val[1],
+                                value: val[0]
+                         };
+                         mapProvince.push(entry);
+                    }
+               }
+          );
+     }
+
      function removeAllChilds(ele){
           while (ele.firstChild) {
                ele.removeChild(ele.lastChild);
           }
      }
      function randomString(len){
-          for(var c = ''; c.length < len;) c += Math.random().toString(36).substr(2, 1)
+          for(let c = ''; c.length < len;) c += Math.random().toString(36).substr(2, 1)
           return c;
      }
-     function randomNumber(){
-          return Math.floor(100000 + Math.random() * 900000);
+     function randomNumber(len){
+          return Math.random(1000).toFixed(len).split('.')[1];
      }
+
      function getSuggestAddressMock(type,value){
-          
+          console.log('getSuggestAddressMock');
           const size = Math.random(1000)*1000%5;
           const suggestValues = [];
           for (let i = 0; i < size; i++) {
-               const value1 = randomNumber();
-               const value2 = randomNumber();
-               const value3 = randomNumber();
-               const value4 = randomNumber();
+               const value1 = randomNumber(6);
+               const value2 = randomNumber(4);
+               const value3 = randomNumber(2);
+               const value4 = randomNumber(5);
                const suggestValue = value1 + "," + value2 + "," +value3 + "," +value4;
-               suggestValues[i] = ['label' + value1 ,
-                                   'label' + value2 ,
-                                   'label' + value3 ,
-                                   'label' + value4 ,
+               suggestValues[i] = ['subdistrict:' + value1 ,
+                                   'district:' + value2 ,
+                                   'province:' + value3 ,
+                                   'zip:' + value4 ,
                                     suggestValue];
           }
           return suggestValues;
      }
-
+ 
      function fetchSuggestItems(type,value,target1,target2,target3,target4){
           let items = new Array();
 
           const suggestValues = getSuggestAddressMock(type,value);
-          // console.log("suggestValues:"+suggestValues);
+          console.log("suggestValues:"+suggestValues);
           // console.log("suggestValues.size:" + suggestValues.length);
           for(let i = 0 ; i< suggestValues.length; i++){
                //console.log("suggestValues["+i+"]size:" +suggestValues[i].length);
@@ -135,28 +178,32 @@
                <tr>
                     <td class="label">·¢«ß/µ”∫≈</td>
                     <td class="data">
-                         <input name="formData.companyAddressDistrict" id="addr1" class="addrField" >
+                         <input id="addr1label" class="addrField" >
+                         <input id="addr1" type="hidden" name="formData.companyAddressDistrict"  >
                          <div class="suggest-list" id="list1"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">‡¢µ/Õ”‡¿Õ</td>
                     <td class="data">
-                         <input name="formData.companyAddressAmphur" id="addr2"  class="addrField">
+                         <input id="addr2label" class="addrField">
+                         <input id="addr2" type="hidden" name="formData.companyAddressAmphur"   >
                          <div class="suggest-list" id="list2"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">®—ßÀ«—¥</td>
                     <td class="data">
-                         <input name="formData.companyAddressProvince" id="addr3"  class="addrField">
+                         <input id="addr3label" class="addrField">
+                         <input id="addr3" type="hidden"  name="formData.companyAddressProvince">
                          <div class="suggest-list" id="list3"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">√À— ‰ª√…≥’¬Ï</td>
                     <td class="data">
-                         <input name="formData.companyAddressPostalCode" id="addr4"  class="addrField">
+                         <input id="addr4label"  class="addrField">
+                         <input id="addr4" type="hidden" name="formData.companyAddressPostalCode" >
                          <div class="suggest-list" id="list4"></div>
                     </td>
                </tr>
@@ -186,10 +233,10 @@
      </table>
 </body>
 <script>
-     const addr1 = document.getElementById('addr1');
-     const addr2 = document.getElementById('addr2');
-     const addr3 = document.getElementById('addr3');
-     const addr4 = document.getElementById('addr4');
+     const addr1 = document.getElementById('addr1label');
+     const addr2 = document.getElementById('addr2label');
+     const addr3 = document.getElementById('addr3label');
+     const addr4 = document.getElementById('addr4label');
      const handler1 = function(){buildSuggestList(addr1,'subdistrict','list1',addr1,addr2,addr3,addr4)};
      const handler2 = function(){buildSuggestList(addr2,'district','list2',addr1,addr2,addr3,addr4)};
      const handler3 = function(){buildSuggestList(addr3,'province','list3',addr1,addr2,addr3,addr4)};
@@ -223,8 +270,6 @@
                          targetEles[j].classList.remove('hightlight');
                }
                
-
-
                const pressed = event.key;
                console.log(pressed);
                console.log("before apply " + hightLightChildAt); 
