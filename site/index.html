@@ -16,7 +16,7 @@
 
 .suggest-item {
      z-index: 100;
-     /*border: 1px solid #eee;*/
+     /* border: 1px solid #eee; */
      padding: 2px;
      background-color: white;
      cursor: pointer;
@@ -40,17 +40,42 @@
           for(var c = ''; c.length < len;) c += Math.random().toString(36).substr(2, 1)
           return c;
      }
+     function randomNumber(){
+          return Math.floor(100000 + Math.random() * 900000);
+     }
+     function getSuggestAddressMock(type,value){
+          
+          const size = Math.random(1000)*1000%5;
+          const suggestValues = [];
+          for (let i = 0; i < size; i++) {
+               const value1 = randomNumber();
+               const value2 = randomNumber();
+               const value3 = randomNumber();
+               const value4 = randomNumber();
+               const suggestValue = value1 + "," + value2 + "," +value3 + "," +value4;
+               suggestValues[i] = ['label' + value1 ,
+                                   'label' + value2 ,
+                                   'label' + value3 ,
+                                   'label' + value4 ,
+                                    suggestValue];
+          }
+          return suggestValues;
+     }
+
      function fetchSuggestItems(type,value,target1,target2,target3,target4){
           let items = new Array();
 
-          const cnt = Math.random(1000)*1000%5;
-          for(let i = 0 ; i< cnt; i++){
+          const suggestValues = getSuggestAddressMock(type,value);
+          // console.log("suggestValues:"+suggestValues);
+          // console.log("suggestValues.size:" + suggestValues.length);
+          for(let i = 0 ; i< suggestValues.length; i++){
+               //console.log("suggestValues["+i+"]size:" +suggestValues[i].length);
                const item = document.createElement("div");
                item.classList.add("suggest-item");
-               item.innerHTML =  randomString(10) + " > "+  randomString(10) + " > "+  randomString(10)   + " > "+  randomString(10);
+               item.innerHTML =  suggestValues[i][0] + " > "+  suggestValues[i][1] + " > "+  suggestValues[i][2]   + " > "+  suggestValues[i][3];
                const subItem = document.createElement("div");
                subItem.classList.add("suggest-item-value");
-               subItem.innerText = "1234,5616,5144,6677";
+               subItem.innerText = suggestValues[i][4];
 
                item.addEventListener('mousedown',  function(e) {applyTargetAddress(target1,target2,target3,target4,subItem.innerText);item.parentElement.style.display ="none";});
                item.addEventListener('mouseenter', function(e) {
@@ -78,7 +103,7 @@
                suggestList.appendChild(child);
                
           }
-           ele.addEventListener('blur',function(event){suggestList.style.display ="none";});
+          ele.addEventListener('blur',function(event){suggestList.style.display ="none";});
      }
      function applyTargetAddress(target1,target2,target3,target4,targetValue ){
           console.log("applyTargetAddress");

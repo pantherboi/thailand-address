@@ -39,9 +39,9 @@ public class MatchingZipcode {
 		PrintWriter pwSubdistrict = null;
 		
 		try{
-			pwProvince = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./output/province.txt"), "TIS-620"));
-			pwDistrict = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./output/district.txt"), "TIS-620"));
-			pwSubdistrict = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./output/subdistrict.txt"), "TIS-620"));
+			pwProvince = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./data/province.txt"), "TIS-620"));
+			pwDistrict = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./data/district.txt"), "TIS-620"));
+			pwSubdistrict = new PrintWriter(new OutputStreamWriter(new FileOutputStream("./data/subdistrict.txt"), "TIS-620"));
 
 			for(Entry<String, String> e : rawProvince.entrySet()){
 				pwProvince.println(e.getKey() +"|" + e.getValue());
