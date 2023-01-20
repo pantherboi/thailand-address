@@ -48,16 +48,15 @@
           loadData("../data/subdistrict.utf8.txt",initSubDistrict);
      }
      function findProvinceByID(id){
-          // console.log("findProvinceByID:" + id)
           return mapProvince.find(obj => obj.provinceID === id)
      }
      function findProvinceByLabel(label){
           return mapProvince.filter(function(entry){
-               if(this.count < this.max && entry.proivinceLabel.startsWith(label)){
+               if(this.count < this.max && entry.provinceLabel.startsWith(label)){
                     this.count++;
                     return true;
                }else return false;
-          },{count:0,max:10});
+          },{count:0,max:20});
      }
      function findDistrictByID(id){
           return mapDistrict.find(obj => obj.districtID === id)
@@ -68,7 +67,7 @@
                     this.count++;
                     return true;
                }else return false;
-          },{count:0,max:10});
+          },{count:0,max:100});
      }
      function findSubDistrictByID(id){
           return mapDistrict.find(obj => obj.subDistrictID === id)
@@ -79,7 +78,7 @@
                     this.count++;
                     return true;
                }else return false;
-          },{count:0,max:10});
+          },{count:0,max:20});
      }
      function findSubDistrictByZipCode(zipCode){
           return mapSubDistrict.filter(function(entry){
@@ -87,7 +86,23 @@
                     this.count++;
                     return true;
                }else return false;
-          },{count:0,max:10});
+          },{count:0,max:20});
+     }
+     function findSubDistrictByDistrictIDs(districtIDs){
+          return mapSubDistrict.filter(function(entry){
+               if(this.count < this.max && districtIDs.find((value) => value===entry.subDistrictID.substring(0,4))){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:20});
+     }
+     function findSubDistrictByProvinceIDs(provinceIDs){
+          return mapSubDistrict.filter(function(entry){
+               if(this.count < this.max && provinceIDs.find((value) => value===entry.subDistrictID.substring(0,2))){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:20});
      }
      function loadData(path, callback){
          const xhr = new XMLHttpRequest();
@@ -166,17 +181,6 @@
           entry.provinceLabel = findProvinceByID(entry.provinceID).provinceLabel;
           return entry;
      }
-     function buildSuggestValueFromDistrict(entry){
-          return entry;
-     }
-     function buildSuggestValueFromSubDistrict(entry){
-          // console.log("buildSuggestValueFromSubDistrict:"+entry.subDistrictID);
-          entry.provinceID = entry.subDistrictID.substring(0,2);
-          entry.districtID = entry.subDistrictID.substring(0,4);
-          entry.districtLabel = findDistrictByID(entry.districtID).districtLabel;
-          entry.provinceLabel = findProvinceByID(entry.provinceID).provinceLabel;
-          return entry;
-     }
 
      function getSuggestAddress(type,value){
           let suggestValues = [];
@@ -185,19 +189,20 @@
           
           if(type === 'zipCode'  ){
                suggestValues = findSubDistrictByZipCode(value);
-               suggestValues.forEach(function(entry){
-                    entry = buildSuggestValueFromSubDistrict(entry);
-               })
           }else if(type === 'subDistrict'){
                suggestValues = findSubDistrictByLabel(value);
-               suggestValues.forEach(function(entry){
-                    entry = buildSuggestValueFromSubDistrict(entry);
-               })
           }else if(type === 'district'){
-               suggestValues = findDistrictByLabel(value);
+               districts = findDistrictByLabel(value).map(function(e){return e.districtID});
+               suggestValues = findSubDistrictByDistrictIDs(districts);
           }else if(type === 'province'){
-               suggestValues = findProvinceByLabel(value);
+               provinces = findProvinceByLabel(value).map(function(e){return e.provinceID});
+               suggestValues = findSubDistrictByProvinceIDs(provinces);
           }
+          
+          suggestValues.forEach(function(entry){
+               entry = buildSuggestValueFromSubDistrict(entry);
+          })
+
           return suggestValues;
      }
  
@@ -277,12 +282,6 @@
      function applyTargetAddress(target1,target2,target3,target4,target5,target6,target7,target8,targetValue ){
           // console.log("applyTargetAddress");
           const array = targetValue.split(",");
-          console.log(target1);
-          console.log(target2);
-          console.log(target3);
-          console.log(target4);
-          // console.log(targetValue);
-          // console.log(array.length);
           document.getElementById(target1).value = array[0];
           document.getElementById(target2).value = array[1];
           document.getElementById(target3).value = array[2];
