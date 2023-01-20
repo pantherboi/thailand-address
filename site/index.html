@@ -27,31 +27,72 @@
 .suggest-item-value {
      display: none;
 }
+.addrValue {
+     display: none;
+}
 </style>
 
-<script>
+<script type="text/javascript" >
      var mapProvince = [];
      var mapDistrict = [];
      var mapSubDistrict = [];
      initData();
      function initData(){
-          loadData("../data/province.txt",initProvince);
-          // loadData("../data/district.txt");
-          // loadData("../data/subdistrict.txt");
+          loadData("../data/province.utf8.txt",initProvince);
+          loadData("../data/district.utf8.txt",initDistrict);
+          loadData("../data/subdistrict.utf8.txt",initSubDistrict);
      }
      function findProvinceByID(id){
-          return mapProvince.filter(obj => obj.value === id)
+          // console.log("findProvinceByID:" + id)
+          return mapProvince.find(obj => obj.provinceID === id)
      }
      function findProvinceByLabel(label){
-          return mapProvince.filter(obj => obj.label.indexOf(label) >= 0)
+          return mapProvince.filter(function(entry){
+               if(this.count < this.max && entry.proivinceLabel.startsWith(label)){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:10});
+     }
+     function findDistrictByID(id){
+          return mapDistrict.find(obj => obj.districtID === id)
+     }
+     function findDistrictByLabel(label){
+          return mapDistrict.filter(function(entry){
+               if(this.count < this.max && entry.districtLabel.startsWith(label)){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:10});
+     }
+     function findSubDistrictByID(id){
+          return mapDistrict.find(obj => obj.subDistrictID === id)
+     }
+     function findSubDistrictByLabel(label){
+          return mapSubDistrict.filter(function(entry){
+               if(this.count < this.max && entry.subDistrictLabel.startsWith(label)){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:10});
+     }
+     function findSubDistrictByZipCode(zipCode){
+          return mapSubDistrict.filter(function(entry){
+               if(this.count < this.max && entry.zipCode.startsWith(zipCode)){
+                    this.count++;
+                    return true;
+               }else return false;
+          },{count:0,max:10});
      }
      function loadData(path, callback){
          const xhr = new XMLHttpRequest();
-         xhr.overrideMimeType('text/xml; charset=iso-8859-11');
+     //     xhr.overrideMimeType('text/xml; charset=iso-8859-11');
+         xhr.overrideMimeType('text/xml; charset=UTF-8');
          xhr.onreadystatechange = function () {
                if(xhr.readyState === 4 && xhr.status === 200 ){
                     const res= xhr.responseText;
                     const allLines = res.split(/\r?\n/);
+                    console.log(allLines);
                     callback(allLines);
                }
          }
@@ -64,15 +105,41 @@
                     const val = line.split("|");
                     if(val.length > 1){
                          entry = {
-                                label: val[1],
-                                value: val[0]
+                                provinceID: val[0],
+                                provinceLabel: val[1]
                          };
                          mapProvince.push(entry);
                     }
                }
           );
      }
-
+     function initDistrict(data){
+          data.forEach((line) => {
+                    const val = line.split("|");
+                    if(val.length > 1){
+                         entry = {
+                              districtID: val[0],
+                              districtLabel: val[1]
+                         };
+                         mapDistrict.push(entry);
+                    }
+               }
+          );
+     }
+     function initSubDistrict(data){
+          data.forEach((line) => {
+                    const val = line.split("|");
+                    if(val.length > 2){
+                         entry = {
+                              subDistrictID: val[0],
+                              subDistrictLabel: val[1],  
+                              zipCode: val[2]
+                         };
+                         mapSubDistrict.push(entry);
+                    }
+               }
+          );
+     }
      function removeAllChilds(ele){
           while (ele.firstChild) {
                ele.removeChild(ele.lastChild);
@@ -104,23 +171,71 @@
           }
           return suggestValues;
      }
+     
+     function buildSuggestValueFromSubDistrict(entry){
+          // console.log("buildSuggestValueFromSubDistrict:"+entry.subDistrictID);
+          entry.provinceID = entry.subDistrictID.substring(0,2);
+          entry.districtID = entry.subDistrictID.substring(0,4);
+          entry.districtLabel = findDistrictByID(entry.districtID).districtLabel;
+          entry.provinceLabel = findProvinceByID(entry.provinceID).provinceLabel;
+          return entry;
+     }
+
+     function buildSuggestValueFromSubDistrict(entry){
+          // console.log("buildSuggestValueFromSubDistrict:"+entry.subDistrictID);
+          entry.provinceID = entry.subDistrictID.substring(0,2);
+          entry.districtID = entry.subDistrictID.substring(0,4);
+          entry.districtLabel = findDistrictByID(entry.districtID).districtLabel;
+          entry.provinceLabel = findProvinceByID(entry.provinceID).provinceLabel;
+          return entry;
+     }
+
+     function getSuggestAddress(type,value){
+          
+          // console.log('getSuggestAddress' + type + ' ' + value);
+          let suggestValues = [];
+          if(value.length == 0 ) return suggestValues;
+          
+          
+          if(type === 'zipCode'  ){
+               suggestValues = findSubDistrictByZipCode(value);
+               suggestValues.forEach(function(entry){
+                    entry = buildSuggestValueFromSubDistrict(entry);
+               })
+          }else if(type === 'subDistrict'  ){
+               suggestValues = findSubDistrictByLabel(value);
+               suggestValues.forEach(function(entry){
+                    entry = buildSuggestValueFromSubDistrict(entry);
+               })
+          }else if(type === 'district'  ){
+               suggestValues = findDistrictByLabel(value);
+          }else if(type === 'province'  ){
+               suggestValues = findProvinceByLabel(value);
+          }
+          return suggestValues;
+     }
  
-     function fetchSuggestItems(type,value,target1,target2,target3,target4){
+     function fetchSuggestItems(type,value,target1,target2,target3,target4,target5,target6,target7,target8){
           let items = new Array();
 
-          const suggestValues = getSuggestAddressMock(type,value);
-          console.log("suggestValues:"+suggestValues);
+          const suggestValues = getSuggestAddress(type,value);
+          // const suggestValues = getSuggestAddressMock(type,value);
+          // console.log("suggestValues:"+suggestValues);
           // console.log("suggestValues.size:" + suggestValues.length);
           for(let i = 0 ; i< suggestValues.length; i++){
                //console.log("suggestValues["+i+"]size:" +suggestValues[i].length);
                const item = document.createElement("div");
                item.classList.add("suggest-item");
-               item.innerHTML =  suggestValues[i][0] + " > "+  suggestValues[i][1] + " > "+  suggestValues[i][2]   + " > "+  suggestValues[i][3];
+               item.innerHTML =  suggestValues[i].subDistrictLabel + " > "+  suggestValues[i].districtLabel + " > "+  suggestValues[i].provinceLabel   + " > "+  suggestValues[i].zipCode;
                const subItem = document.createElement("div");
                subItem.classList.add("suggest-item-value");
-               subItem.innerText = suggestValues[i][4];
+               subItem.innerText = 
+               suggestValues[i].subDistrictID + "," + suggestValues[i].subDistrictLabel + "," + 
+               suggestValues[i].districtID    + "," + suggestValues[i].districtLabel + "," + 
+               suggestValues[i].provinceID    + "," + suggestValues[i].provinceLabel+ "," + 
+               suggestValues[i].zipCode
 
-               item.addEventListener('mousedown',  function(e) {applyTargetAddress(target1,target2,target3,target4,subItem.innerText);item.parentElement.style.display ="none";});
+               item.addEventListener('mousedown',  function(e) {applyTargetAddress(target1,target2,target3,target4,target5,target6,target7,target8,subItem.innerText);item.parentElement.style.display ="none";});
                item.addEventListener('mouseenter', function(e) {
                     const suggestItemElems = document.querySelectorAll('.suggest-item');
                     suggestItemElems.forEach(f => {
@@ -135,12 +250,12 @@
           return items;
      }
 
-     function buildSuggestList(ele,type,listid,target1,target2,target3,target4){
-          console.log("buildSuggestList");
+     function buildSuggestList(ele,type,listid,target1,target2,target3,target4,target5,target6,target7,target8){
+          // console.log("buildSuggestList");
           const suggestList = document.getElementById(listid);
           suggestList.style.display ="block";
           removeAllChilds(suggestList);
-          const suggestItems =  fetchSuggestItems(type,ele.value,target1,target2,target3,target4);
+          const suggestItems =  fetchSuggestItems(type,ele.value,target1,target2,target3,target4,target5,target6,target7,target8);
           for(let  i = 0 ; i< suggestItems.length ; i++){
                const child = suggestItems[i];
                suggestList.appendChild(child);
@@ -148,21 +263,23 @@
           }
           ele.addEventListener('blur',function(event){suggestList.style.display ="none";});
      }
-     function applyTargetAddress(target1,target2,target3,target4,targetValue ){
-          console.log("applyTargetAddress");
+     function applyTargetAddress(target1,target2,target3,target4,target5,target6,target7,target8,targetValue ){
+          // console.log("applyTargetAddress");
           const array = targetValue.split(",");
           console.log(target1);
           console.log(target2);
           console.log(target3);
           console.log(target4);
-          console.log(targetValue);
-          console.log(array.length);
-          target1.value = array[0];
-          target2.value = array[1];
-          target3.value = array[2];
-          target4.value = array[3];
-
-          
+          // console.log(targetValue);
+          // console.log(array.length);
+          document.getElementById(target1).value = array[0];
+          document.getElementById(target2).value = array[1];
+          document.getElementById(target3).value = array[2];
+          document.getElementById(target4).value = array[3];
+          document.getElementById(target5).value = array[4];
+          document.getElementById(target6).value = array[5];
+          document.getElementById(target7).value = array[6];
+          document.getElementById(target8).value = array[6];
           
      }
      const triggerElementEvent = (el, eventName) => {
@@ -172,45 +289,45 @@
      };
 </script>
 <body>
-     <h3> ข้อมูลส่วนบุคคล </h3>
+     <h3> address 1 </h3>
      <table class="section-layout full-width" cellspacing="3" cellpadding="3">
           <tbody>
                <tr>
                     <td class="label">แขวง/ตำบล</td>
                     <td class="data">
-                         <input id="addr1label" class="addrField" >
-                         <input id="addr1" type="hidden" name="formData.companyAddressDistrict"  >
+                         <input id="addr1label" class="addrLabel" >
+                         <input id="addr1" class="addrValue" name="formData.companyAddressDistrict"  >
                          <div class="suggest-list" id="list1"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">เขต/อำเภอ</td>
                     <td class="data">
-                         <input id="addr2label" class="addrField">
-                         <input id="addr2" type="hidden" name="formData.companyAddressAmphur"   >
+                         <input id="addr2label" class="addrLabel">
+                         <input id="addr2" class="addrValue" name="formData.companyAddressAmphur"   >
                          <div class="suggest-list" id="list2"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">จังหวัด</td>
                     <td class="data">
-                         <input id="addr3label" class="addrField">
-                         <input id="addr3" type="hidden"  name="formData.companyAddressProvince">
+                         <input id="addr3label" class="addrLabel">
+                         <input id="addr3"  class="addrValue"  name="formData.companyAddressProvince">
                          <div class="suggest-list" id="list3"></div>
                     </td>
                </tr>
                <tr>
                     <td class="label">รหัสไปรษณีย์</td>
                     <td class="data">
-                         <input id="addr4label"  class="addrField">
-                         <input id="addr4" type="hidden" name="formData.companyAddressPostalCode" >
+                         <input id="addr4label"  class="addrLabel">
+                         <input id="addr4" class="addrValue" name="formData.companyAddressPostalCode" >
                          <div class="suggest-list" id="list4"></div>
                     </td>
                </tr>
           </tbody>
      </table>
 
-     <h3>ข้อมูลสถานประกอบการ </h3>
+     <h3>address 2 </h3>
      <table class="section-layout full-width" cellspacing="3" cellpadding="3">
           <tbody>
                <tr>
@@ -237,10 +354,10 @@
      const addr2 = document.getElementById('addr2label');
      const addr3 = document.getElementById('addr3label');
      const addr4 = document.getElementById('addr4label');
-     const handler1 = function(){buildSuggestList(addr1,'subdistrict','list1',addr1,addr2,addr3,addr4)};
-     const handler2 = function(){buildSuggestList(addr2,'district','list2',addr1,addr2,addr3,addr4)};
-     const handler3 = function(){buildSuggestList(addr3,'province','list3',addr1,addr2,addr3,addr4)};
-     const handler4 = function(){buildSuggestList(addr4,'zipcode','list4',addr1,addr2,addr3,addr4)};
+     const handler1 = function(){buildSuggestList(addr1,'subDistrict','list1','addr1','addr1label','addr2','addr2label','addr3','addr3label','addr4','addr4label')};
+     const handler2 = function(){buildSuggestList(addr2,'district','list2','addr1','addr1label','addr2','addr2label','addr3','addr3label','addr4','addr4label')};
+     const handler3 = function(){buildSuggestList(addr3,'province','list3','addr1','addr1label','addr2','addr2label','addr3','addr3label','addr4','addr4label')};
+     const handler4 = function(){buildSuggestList(addr4,'zipCode','list4','addr1','addr1label','addr2','addr2label','addr3','addr3label','addr4','addr4label')};
 
      addr1.addEventListener('focus', handler1);
      addr1.addEventListener('input', handler1);
@@ -251,12 +368,13 @@
      addr4.addEventListener('focus', handler4);
      addr4.addEventListener('input', handler4);
 
-     const elements = document.getElementsByClassName("addrField");
+     const elements = document.getElementsByClassName("addrLabel");
      
      for (let i = 0; i < elements.length; i++) {
           elements[i].addEventListener('keydown', function(e){ 
                const suggestItems = e.target.parentElement.querySelectorAll('.suggest-item');
                
+               if(suggestItems.length == 0 ) return;
                let hightLightChildAt = -1 ;
               
                for(let j = 0 ; j< suggestItems.length ; j++){
@@ -271,8 +389,6 @@
                }
                
                const pressed = event.key;
-               console.log(pressed);
-               console.log("before apply " + hightLightChildAt); 
                if(pressed == 'Enter'){
                     console.log(suggestItems[hightLightChildAt]);
                     triggerElementEvent(suggestItems[hightLightChildAt],'mousedown');
