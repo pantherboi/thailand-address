@@ -30,6 +30,11 @@
 .addrValue {
      display: none;
 }
+.highlight {
+  background-color: yellow;
+  font-weight: bolder;
+}
+
 </style>
 
 <script type="text/javascript" >
@@ -152,25 +157,6 @@
      function randomNumber(len){
           return Math.random(1000).toFixed(len).split('.')[1];
      }
-
-     function getSuggestAddressMock(type,value){
-          console.log('getSuggestAddressMock');
-          const size = Math.random(1000)*1000%5;
-          const suggestValues = [];
-          for (let i = 0; i < size; i++) {
-               const value1 = randomNumber(6);
-               const value2 = randomNumber(4);
-               const value3 = randomNumber(2);
-               const value4 = randomNumber(5);
-               const suggestValue = value1 + "," + value2 + "," +value3 + "," +value4;
-               suggestValues[i] = ['subdistrict:' + value1 ,
-                                   'district:' + value2 ,
-                                   'province:' + value3 ,
-                                   'zip:' + value4 ,
-                                    suggestValue];
-          }
-          return suggestValues;
-     }
      
      function buildSuggestValueFromSubDistrict(entry){
           // console.log("buildSuggestValueFromSubDistrict:"+entry.subDistrictID);
@@ -180,7 +166,9 @@
           entry.provinceLabel = findProvinceByID(entry.provinceID).provinceLabel;
           return entry;
      }
-
+     function buildSuggestValueFromDistrict(entry){
+          return entry;
+     }
      function buildSuggestValueFromSubDistrict(entry){
           // console.log("buildSuggestValueFromSubDistrict:"+entry.subDistrictID);
           entry.provinceID = entry.subDistrictID.substring(0,2);
@@ -191,8 +179,6 @@
      }
 
      function getSuggestAddress(type,value){
-          
-          // console.log('getSuggestAddress' + type + ' ' + value);
           let suggestValues = [];
           if(value.length == 0 ) return suggestValues;
           
@@ -202,19 +188,30 @@
                suggestValues.forEach(function(entry){
                     entry = buildSuggestValueFromSubDistrict(entry);
                })
-          }else if(type === 'subDistrict'  ){
+          }else if(type === 'subDistrict'){
                suggestValues = findSubDistrictByLabel(value);
                suggestValues.forEach(function(entry){
                     entry = buildSuggestValueFromSubDistrict(entry);
                })
-          }else if(type === 'district'  ){
+          }else if(type === 'district'){
                suggestValues = findDistrictByLabel(value);
-          }else if(type === 'province'  ){
+          }else if(type === 'province'){
                suggestValues = findProvinceByLabel(value);
           }
           return suggestValues;
      }
  
+
+     function hightlightText(isHighlight,baseText,text){
+          if(!isHighlight) return baseText;
+          const index = baseText.indexOf(text);
+          let result = baseText;
+          if (index >= 0) { 
+               result = baseText.substring(0,index) + "<span class='highlight'>" + baseText.substring(index,index+text.length) + "</span>" + baseText.substring(index + text.length);
+          }
+          return result;
+
+     }
      function fetchSuggestItems(type,value,target1,target2,target3,target4,target5,target6,target7,target8){
           let items = new Array();
 
@@ -226,9 +223,23 @@
                //console.log("suggestValues["+i+"]size:" +suggestValues[i].length);
                const item = document.createElement("div");
                item.classList.add("suggest-item");
-               item.innerHTML =  suggestValues[i].subDistrictLabel + " > "+  suggestValues[i].districtLabel + " > "+  suggestValues[i].provinceLabel   + " > "+  suggestValues[i].zipCode;
+
+               // item.innerHTML =   
+               // suggestValues[i].subDistrictLabel + " > "+  
+               // suggestValues[i].districtLabel + " > "+  
+               // suggestValues[i].provinceLabel   + " > "+  
+               // suggestValues[i].zipCode;
+               
+               item.innerHTML =   
+               hightlightText(type ==='subDistrict',suggestValues[i].subDistrictLabel,value) + " > "+  
+               hightlightText(type ==='district',suggestValues[i].districtLabel,value) + " > "+  
+               hightlightText(type ==='province',suggestValues[i].provinceLabel,value) + " > "+  
+               hightlightText(type ==='zipCode',suggestValues[i].zipCode,value) ;
+
+               
                const subItem = document.createElement("div");
                subItem.classList.add("suggest-item-value");
+               
                subItem.innerText = 
                suggestValues[i].subDistrictID + "," + suggestValues[i].subDistrictLabel + "," + 
                suggestValues[i].districtID    + "," + suggestValues[i].districtLabel + "," + 
@@ -292,6 +303,7 @@
      <h3> address 1 </h3>
      <table class="section-layout full-width" cellspacing="3" cellpadding="3">
           <tbody>
+               
                <tr>
                     <td class="label">á¢Ç§/µÓºÅ</td>
                     <td class="data">
